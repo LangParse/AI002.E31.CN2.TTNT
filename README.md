@@ -1,41 +1,44 @@
-<!-- Banner -->
-<p align="center">
-  <a href="https://www.uit.edu.vn/" title="Trường Đại học Công nghệ Thông tin" style="border: none;">
-    <img src="https://i.imgur.com/WmMnSRt.png" alt="Trường Đại học Công nghệ Thông tin | University of Information Technology">
-  </a>
-</p>
+# AI Medication Reminder
 
-<!-- Title -->
-<h1 align="center"><b>Artificial Intelligence Thinking</b></h1>
+This project is an AI-powered assistant that predicts and reminds you to take your medication based on your daily context.
 
-<!-- Main -->
+## Features
+- Predicts the likelihood of missing a medication dose using AI
+- Provides reminders with different urgency levels
+- Simple command-line interface
 
-# Thành viên nhóm:
+## Requirements
+- Python 3.8 or newer
+- See `requirements.txt` for Python dependencies
 
-| STT |   MSSV   |                Họ và Tên |     Chức Vụ |                                                  Github |                  Email |
-| --- | :------: | -----------------------: | ----------: | ------------------------------------------------------: | ---------------------: |
-| 1   | 25410098 |          Tran Hai Nguyen | Nhóm trưởng | [nguyentran070397](https://github.com/nguyentran070397) | 25410098@ms.uit.edu.vn |
-| 2   | 25410139 |         Nguyen Phuoc Tho |  Thành viên |               [nphuoctho](https://github.com/nphuoctho) | 25410139@ms.uit.edu.vn |
-| 3   | 25410124 |             Do Trong Tai |  Thành viên |             [taidotrong](https://github.com/taidotrong) | 25410124@ms.uit.edu.vn |
-| 4   | 25410070 |             Do Danh Khoa |  Thành viên |             [dodanhkhoa](https://github.com/dodanhkhoa) | 25410070@ms.uit.edu.vn |
-| 5   | 25410145 | Duong Phuong Chuong Toan |  Thành viên |             [ToanIT2004](https://github.com/ToanIT2004) | 25410145@ms.uit.edu.vn |
+## Setup
+1. **Clone or download this repository.**
+2. **Navigate to the project directory:**
+   ```sh
+   cd /Users/taidotrong/Desktop/Learning/AI-thinking
+   ```
+3. **Install required Python libraries:**
+   ```sh
+   pip install -r requirements.txt
+   ```
+4. **Ensure the file `medication_model.pkl` is present in the project directory.**
 
-## GIỚI THIỆU NHÓM
+## Usage
+Run the main script:
+```sh
+python main.py
+```
 
-- **Số thứ tự nhóm:** 12
-- **Tên nhóm:** LangParse
+You will be prompted to enter:
+- The day of the week (0=Monday, 1=Tuesday, ..., 6=Sunday)
+- Time of day (0=Morning, 1=Evening)
+- Your systolic blood pressure
 
-## GIỚI THIỆU MÔN HỌC
+The AI will analyze your input and provide a reminder based on the predicted risk of missing your medication.
 
-- **Mã môn học:** AI002
-- **Mã lớp:** AI002.E31.CN2.TTNT
-- **Năm học:** Học kỳ 3 (2025-2026)
-- **Giảng viên**: Duy Phan Thế - **duypt@uit.edu.vn**
+## Notes
+- The model file (`medication_model.pkl`) must be present in the same directory as `main.py`.
+- If you want to retrain the model, use `train_model.py` (see script for details).
 
-## ĐỒ ÁN CUỐI KỲ
-
-- **Tên đồ án:** Trợ lý AI theo dõi dùng thuốc và nhắc nhở liều dùng cá nhân hóa
-- **Thư mục:** None
-
-<!-- Footer -->
-<p align='center'>Copyright © 2025 - LangParse</p>
+## License
+This project is for educational purposes. 
