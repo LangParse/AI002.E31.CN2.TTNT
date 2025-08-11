@@ -1,0 +1,12 @@
+models:
+  random_forest:
+    param_grid:
+      model__max_depth: [3, 5, 7]
+      model__n_estimators: [100, 200]
+  xgboost:
+    param_grid:
+      learning_rate: [0.01, 0.1]
+      model__max_depth: [3, 5, 7]
+      model__n_estimators: [100, 200]
+target: "taken"
+cv_folds: 5
