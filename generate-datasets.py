@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 # =====================
 # Cấu hình
 # =====================
-NUM_PATIENTS = 1000  # số bệnh nhân mô phỏng
-DAYS = 180  # số ngày mỗi bệnh nhân
+NUM_PATIENTS = 100  # số bệnh nhân mô phỏng
+DAYS = 12  # số ngày mỗi bệnh nhân
 TRAIN_RATIO = 0.8  # Tỷ lệ dữ liệu cho tập train (0.8 nghĩa là 80% train, 20% test)
 TRAIN_FILE = "data/synthetic_hypertension_train.csv"
 TEST_FILE = "data/synthetic_hypertension_test.csv"

@@ -1,42 +1,51 @@
-from src.data_preprocessing import (
-    get_preprocessor,
-    load_and_preprocess,
+from src.data_preprocessing import load_and_preprocess, get_advanced_preprocessor
+from src.model_training import train_model
+from src.model_evaluation import evaluate_model
+from src.visualization import plot_confusion_matrix, plot_feature_importance
+from src.deployment import save_model
+import pandas as pd
+
+MODELS = ["logistic_regression", "random_forest", "xgboost", "lightgbm", "catboost"]
+TRAIN_FILE = "data/synthetic_hypertension_train.csv"  # Copy data files to data/
+TEST_FILE = "data/synthetic_hypertension_test.csv"
+
+# Load data
+X_train, y_train, cat_feats, num_feats, bin_feats = load_and_preprocess(
+    TRAIN_FILE, is_train=True
 )
-from src.model_training import load_config, train_model
-from src.model_evaluation import evaluate_model, visualize_results, save_model
+X_test, y_test, _, _, _ = load_and_preprocess(TEST_FILE, is_train=False)
 
-if __name__ == "__main__":
-    # Load configuration
-    config = load_config("config/config.yaml")
+preprocessor = get_advanced_preprocessor(cat_feats, num_feats, bin_feats)
 
-    # Load and preprocess data
-    X_train, y_train, categorical_features, numerical_features = load_and_preprocess(
-        "data/synthetic_hypertension_train.csv", is_train=True
-    )
-    X_test, y_test, _, _ = load_and_preprocess(
-        "data/synthetic_hypertension_train.csv", is_train=False
-    )
+results = {}
+best_model = None
+best_f1 = 0
+best_name = ""
 
-    # Get preprocessor
-    preprocessor = get_preprocessor(categorical_features, numerical_features)
+for model_name in MODELS:
+    print(f"\nTraining {model_name}...")
+    pipeline = train_model(model_name, X_train, y_train, preprocessor)
 
-    # Train model
-    models = {}
-    for model_name in ["random_forest", "xgboost"]:
-        model = train_model(model_name, X_train, y_train, preprocessor, config)
-        models[model_name] = model
+    print(f"Evaluating {model_name}...")
+    metrics, y_pred = evaluate_model(pipeline, X_test, y_test)
+    results[model_name] = metrics
 
-    # Evaluate and visualize results
-    best_model = None
-    best_f1 = 0
-    for model_name, model in models.items():
-        metrics, _ = evaluate_model(model, X_test, y_test)
-        visualize_results(model, X_test, y_test, model_name)
-        if metrics["f1_score"] > best_f1:
-            best_f1 = metrics["f1_score"]
-            best_model = model
+    if metrics["f1"] > best_f1:
+        best_f1 = metrics["f1"]
+        best_model = pipeline
+        best_name = model_name
 
-    # Save model to deploy
-    save_model(best_model, "models/hypertension_model_v1.pkl")
+    # Visualization
+    plot_confusion_matrix(y_test, y_pred, model_name)
 
-    print("Model training and evaluation completed successfully.")
+    # Get feature names after preprocessing from the fitted pipeline
+    feature_names = pipeline.named_steps["preprocessor"].get_feature_names_out()
+    plot_feature_importance(pipeline, feature_names, model_name)
+
+print("\n=== Kết quả so sánh ===")
+print(pd.DataFrame(results).T)
+
+# Save best model
+save_model(best_model, f"./models/{best_name}_model.pkl")
+
+print("Done! To deploy, run: python src/deployment.py")
