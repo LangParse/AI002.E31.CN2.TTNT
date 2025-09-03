@@ -10,16 +10,16 @@ wheels/
 .venv
 
 # data
-data/
+/data/
 
 # models
 /models/
 
 # figures
-figures/
+/figures/
 
 # metrics
-metrics/
+/metrics/
 
 # Logs
 pipeline.log
