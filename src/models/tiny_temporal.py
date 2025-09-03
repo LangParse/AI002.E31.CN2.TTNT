@@ -25,10 +25,10 @@ class TinyTemporalModel:
 
         # Try to import torch, but make it optional
         try:
-            import torch
-            import torch.nn as nn
-            import torch.optim as optim
-            from torch.utils.data import DataLoader, TensorDataset
+            import torch  # type: ignore
+            import torch.nn as nn  # type: ignore
+            import torch.optim as optim  # type: ignore
+            from torch.utils.data import DataLoader, TensorDataset  # type: ignore
 
             self.torch = torch
             self.nn = nn
@@ -253,7 +253,7 @@ class TinyTemporalModel:
             Loaded TinyTemporalModel instance
         """
         try:
-            import torch
+            import torch  # type: ignore
         except ImportError:
             raise ImportError("PyTorch is required to load TinyTemporal model")
 

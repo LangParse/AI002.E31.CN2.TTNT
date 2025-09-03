@@ -61,7 +61,10 @@ class ModelTrainer:
         print(f"Validation AUC: {val_auc:.4f}")
 
         # Save model
-        model_path = self.config.paths.models_dir / "baseline_model.pkl"
+        models_dir = self.config.paths.models_dir or (
+            self.config.paths.base_dir / "models"
+        )
+        model_path = models_dir / "baseline_model.pkl"
         model.save(model_path)
 
         # Store in trainer
@@ -120,7 +123,10 @@ class ModelTrainer:
             print(f"Validation AUC: {val_auc:.4f}")
 
             # Save model
-            model_path = self.config.paths.models_dir / "tiny_temporal_model.pth"
+            models_dir = self.config.paths.models_dir or (
+                self.config.paths.base_dir / "models"
+            )
+            model_path = models_dir / "tiny_temporal_model.pth"
             model.save(model_path)
 
             # Store in trainer
@@ -198,8 +204,12 @@ class ModelTrainer:
         """
         loaded_models = {}
 
+        models_dir = self.config.paths.models_dir or (
+            self.config.paths.base_dir / "models"
+        )
+
         # Try to load baseline model
-        baseline_path = self.config.paths.models_dir / "baseline_model.pkl"
+        baseline_path = models_dir / "baseline_model.pkl"
         if baseline_path.exists():
             try:
                 baseline_model = BaselineModel.load(baseline_path)
@@ -209,7 +219,7 @@ class ModelTrainer:
                 print(f"Failed to load baseline model: {str(e)}")
 
         # Try to load TinyTemporal model
-        tiny_temporal_path = self.config.paths.models_dir / "tiny_temporal_model.pth"
+        tiny_temporal_path = models_dir / "tiny_temporal_model.pth"
         if tiny_temporal_path.exists():
             try:
                 tiny_temporal_model = TinyTemporalModel.load(tiny_temporal_path)
