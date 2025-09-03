@@ -73,6 +73,21 @@ class EpsilonGreedyBandit:
                 X = np.array(arm_data[self.config.context_features].values)
                 y = np.array(arm_data["reward"].values)
 
+                # Check if we have at least 2 different classes
+                unique_classes = np.unique(y)
+                if len(unique_classes) < 2:
+                    # Skip training if only one class present
+                    continue
+
+                # Also check if we have reasonable class balance
+                success_rate = np.mean(y)
+                min_rate = getattr(self.config, "min_success_rate", 0.05)
+                max_rate = getattr(self.config, "max_success_rate", 0.95)
+
+                if success_rate < min_rate or success_rate > max_rate:
+                    # Skip training if extremely imbalanced
+                    continue
+
                 try:
                     self.outcome_models[arm].fit(X, y)
                 except Exception as e:

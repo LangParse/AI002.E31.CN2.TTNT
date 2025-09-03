@@ -154,6 +154,8 @@ class BanditConfig:
     )
     arms: list = field(default_factory=lambda: ["push", "SMS", "voice"])
     outcome_model_min_samples: int = 20
+    min_success_rate: float = 0.05  # Minimum 5% success rate to train model
+    max_success_rate: float = 0.95  # Maximum 95% success rate to train model
 
 
 @dataclass
