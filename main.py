@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Main entry point for AI Medication Reminder system.
 
@@ -22,11 +21,11 @@ def main():
         description="AI Medication Reminder System",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  python main.py --run-pipeline                    # Run full pipeline
-  python main.py --run-pipeline --force-retrain   # Force retrain models
-  python main.py --inference --user-data '{"hour": 9, "dow": 1}'  # Run inference
-  python main.py --data-scale LARGE               # Use large dataset
+        Examples:
+            python main.py --run-pipeline                    # Run full pipeline
+            python main.py --run-pipeline --force-retrain   # Force retrain models
+            python main.py --inference --user-data '{"hour": 9, "dow": 1}'  # Run inference
+            python main.py --data-scale LARGE               # Use large dataset
         """,
     )
 
