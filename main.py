@@ -12,7 +12,8 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src import Pipeline
+from src.config import Config
+from src.pipeline import Pipeline
 
 
 def main():
@@ -45,17 +46,15 @@ def main():
         help="Data scale to use (overrides environment detection)",
     )
 
-    parser.add_argument(
-        "--config-file", type=Path, help="Path to custom configuration file"
-    )
-
-    # Inference options
+    # Inference options require must have user_data
     parser.add_argument(
         "--inference", action="store_true", help="Run inference for a single user"
     )
 
     parser.add_argument(
-        "--user-data", type=str, help="JSON string with user context data for inference"
+        "--user-data",
+        type=str,
+        help="JSON string with user context data for inference",
     )
 
     parser.add_argument(
@@ -64,24 +63,10 @@ def main():
         help="List of medications for drug interaction checking",
     )
 
-    # Utility options
-    parser.add_argument(
-        "--validate-setup",
-        action="store_true",
-        help="Validate system setup and dependencies",
-    )
-
     args = parser.parse_args()
 
-    # Validate setup if requested
-    if args.validate_setup:
-        validate_setup()
-        return
-
-    # Create configuration
-    config = create_config(args)
-
     # Initialize pipeline
+    config = Config.from_env()
     pipeline = Pipeline(config)
 
     try:
@@ -109,6 +94,11 @@ def main():
 
             print("\nInference Results:")
             print("=" * 50)
+
+            if results["recommendations"]["error"]:
+                print(f"Error: {results['recommendations']['error']}")
+                sys.exit(1)
+
             print(
                 f"Recommended Channel: {results['recommendations']['recommended_channel']}"
             )
@@ -122,6 +112,10 @@ def main():
                 for warning in results["warnings"]:
                     print(f"  - {warning.get('description', warning)}")
 
+        elif args.data_scale:
+            generate_synthetic_data(args.data_scale)
+            print("\nData generation completed successfully!")
+
         else:
             # Show help if no action specified
             parser.print_help()
@@ -134,83 +128,17 @@ def main():
         sys.exit(1)
 
 
-def create_config(args):
-    """Create configuration from command line arguments."""
-    from src import Config
-
-    if args.config_file and args.config_file.exists():
-        # Load from file (not implemented in this version)
-        print(f"Loading config from {args.config_file}")
-        config = Config.from_env()
-    else:
-        # Create from environment
-        config = Config.from_env()
-
-    # Override with command line arguments
-    if args.data_scale:
-        config.env.data_scale = args.data_scale
-
-    return config
-
-
-def validate_setup():
-    """Validate system setup and dependencies."""
-    print("Validating AI Medication Reminder Setup...")
-    print("=" * 50)
-
-    # Check Python version
-    import sys
-
-    print(f"Python Version: {sys.version}")
-
-    # Check required packages
-    required_packages = ["pandas", "numpy", "scikit-learn", "matplotlib"]
-
-    optional_packages = [
-        ("torch", "PyTorch (for TinyTemporal model)"),
-    ]
-
-    missing_required = []
-    missing_optional = []
-
-    for package in required_packages:
-        try:
-            __import__(package)
-            print(f"✓ {package}")
-        except ImportError:
-            print(f"✗ {package} (REQUIRED)")
-            missing_required.append(package)
-
-    for package, description in optional_packages:
-        try:
-            __import__(package)
-            print(f"✓ {package}")
-        except ImportError:
-            print(f"- {package} (optional: {description})")
-            missing_optional.append(package)
-
-    # Check environment
-    from src import Config
+def generate_synthetic_data(data_scale: str = "SMALL"):
+    """Generate synthetic data from command line arguments."""
+    from src.data.generator import SyntheticDataGenerator
 
     config = Config.from_env()
-    print(f"\nEnvironment: {'Colab' if config.env.in_colab else 'Local'}")
-    print(f"Data Scale: {config.env.data_scale}")
-    print(f"GPU Available: {config.env.has_gpu}")
-
-    # Summary
-    print("\n" + "=" * 50)
-    if missing_required:
-        print(
-            f"❌ Setup incomplete. Missing required packages: {', '.join(missing_required)}"
-        )
-        print("Install with: pip install " + " ".join(missing_required))
-        sys.exit(1)
-    else:
-        print("✅ Setup validation passed!")
-        if missing_optional:
-            print(
-                f"Note: Optional packages not installed: {', '.join(missing_optional)}"
-            )
+    synthetic_generator = SyntheticDataGenerator(config.data, config.env.seed)
+    data_dir_path = config.paths.data_dir or (config.paths.base_dir / "data")
+    df = synthetic_generator.save_synthetic_data(
+        data_dir_path / f"logs_{data_scale.lower()}.csv", data_scale
+    )
+    return df
 
 
 if __name__ == "__main__":

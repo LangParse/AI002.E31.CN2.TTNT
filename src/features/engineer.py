@@ -34,6 +34,10 @@ class FeatureEngineer:
         Returns:
             DataFrame with all engineered features
         """
+        # Convert tz_offset to numeric hours if it exists
+        if "tz_offset" in df.columns:
+            df = self._process_timezone_offset(df)
+
         print("Creating temporal features...")
         df = self.temporal.create_all_temporal_features(df)
 
@@ -77,6 +81,48 @@ class FeatureEngineer:
         print(f"Feature engineering complete. Final shape: {df.shape}")
         return df
 
+    def _process_timezone_offset(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert tz_offset string to numeric hours.
+
+        Args:
+            df: DataFrame with tz_offset column
+
+        Returns:
+            DataFrame with tz_offset_hours numeric column
+        """
+        df = df.copy()
+
+        def parse_tz_offset(tz_str):
+            """Parse timezone offset string like '+07:00' to hours as float."""
+            if pd.isna(tz_str) or not isinstance(tz_str, str):
+                return 0.0
+
+            try:
+                # Remove any whitespace
+                tz_str = tz_str.strip()
+
+                # Handle formats like '+07:00', '-05:30', etc.
+                if ":" in tz_str:
+                    sign = 1 if tz_str[0] == "+" else -1
+                    hours_str, minutes_str = tz_str[1:].split(":")
+                    hours = int(hours_str)
+                    minutes = int(minutes_str)
+                    return sign * (hours + minutes / 60.0)
+                else:
+                    # Handle formats like '+7', '-5'
+                    return float(tz_str)
+            except (ValueError, IndexError):
+                print(f"Warning: Could not parse timezone offset '{tz_str}', using 0.0")
+                return 0.0
+
+        df["tz_offset_hours"] = df["tz_offset"].apply(parse_tz_offset)
+
+        # Drop the original string column to avoid confusion
+        df = df.drop(columns=["tz_offset"])
+
+        return df
+
     def get_feature_columns(self) -> dict:
         """
         Get categorized feature column names.
@@ -99,6 +145,7 @@ class FeatureEngineer:
             "ack_latency_sec",
             "ctr_user_channel",
             "exp_decay_response",
+            "tz_offset_hours",
         ]
 
         # Add rolling CTR features

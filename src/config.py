@@ -81,10 +81,10 @@ class DataConfig:
     """Data generation and processing configuration."""
 
     # Synthetic data generation
-    n_users_small: tuple = (10, 21)
-    n_days_small: tuple = (14, 22)
-    n_users_large: tuple = (100, 301)
-    n_days_large: tuple = (30, 61)
+    n_users_small: tuple = (120, 240)
+    n_days_small: tuple = (60, 90)
+    n_users_large: tuple = (800, 1600)
+    n_days_large: tuple = (120, 360)
 
     # Schema validation
     required_columns: list = field(
@@ -113,15 +113,15 @@ class ModelConfig:
     rolling_windows: list = field(default_factory=lambda: [7, 14])
 
     # Model parameters
-    max_iter: int = 200
+    max_iter: int = 100
     class_weight: str = "balanced"
     test_size: float = 0.4
     val_split: float = 0.5
 
     # TinyTemporal
     use_tiny_temporal: Optional[bool] = None
-    tiny_epochs: int = 5
-    tiny_hidden: int = 16
+    tiny_epochs: int = 20
+    tiny_hidden: int = 32
     tiny_lr: float = 1e-3
     tiny_batch_size: int = 256
 

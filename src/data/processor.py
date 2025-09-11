@@ -32,7 +32,7 @@ class DataProcessor:
             DataFrame with medication reminder data
         """
         data_dir = self.config.paths.data_dir or (self.config.paths.base_dir / "data")
-        logs_path = data_dir / "logs.csv"
+        logs_path = data_dir / "logs_small.csv"
 
         if not logs_path.exists() or force_generate:
             print(f"Generating synthetic data (scale: {self.config.env.data_scale})")
