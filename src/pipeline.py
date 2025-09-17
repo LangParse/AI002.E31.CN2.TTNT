@@ -266,50 +266,150 @@ class Pipeline:
         if "baseline" in self._loaded_models:
             model = self._loaded_models["baseline"]
 
-            # Create feature vector (simplified)
-            import numpy as np
-            import pandas as pd
-
-            # Mock feature creation for inference
-            features = {
-                "hour_sin": np.sin(2 * np.pi * user_data.get("hour", 12) / 24),
-                "hour_cos": np.cos(2 * np.pi * user_data.get("hour", 12) / 24),
-                "dow_sin": np.sin(2 * np.pi * user_data.get("dow", 1) / 7),
-                "dow_cos": np.cos(2 * np.pi * user_data.get("dow", 1) / 7),
-                "hours_since_prev": user_data.get("hours_since_prev", 24),
-                "ctr7": user_data.get("ctr7", 0.5),
-                "ctr14": user_data.get("ctr14", 0.5),
-                "ack_latency_sec": user_data.get("ack_latency_sec", 300),
-                "lag_1": user_data.get("lag_1", 0),
-                "lag_2": user_data.get("lag_2", 0),
-                "channel": user_data.get("channel", "push"),
-                "time_bucket": user_data.get("time_bucket", "morning"),
-                "is_weekend": user_data.get("is_weekend", 0),
-                "latency_bucket": user_data.get("latency_bucket", "medium"),
-            }
-
-            # Convert to DataFrame
-            X_inference = pd.DataFrame([features])
-
             try:
+                # Create complete feature vector matching training features
+                import numpy as np
+                import pandas as pd
+
+                # Get expected feature columns from the feature engineer
+                feature_cols = self.feature_engineer.get_feature_columns()
+
+                # Create comprehensive feature vector
+                features = {}
+
+                # Temporal features
+                hour = user_data.get("hour", 12)
+                dow = user_data.get("dow", 1)
+                features.update(
+                    {
+                        "hour_sin": np.sin(2 * np.pi * hour / 24),
+                        "hour_cos": np.cos(2 * np.pi * hour / 24),
+                        "dow_sin": np.sin(2 * np.pi * dow / 7),
+                        "dow_cos": np.cos(2 * np.pi * dow / 7),
+                        "hours_since_prev": user_data.get("hours_since_prev", 24),
+                        "is_weekend": 1 if dow >= 5 else 0,
+                    }
+                )
+
+                # Determine time bucket
+                if 5 <= hour <= 11:
+                    time_bucket = "morning"
+                elif 12 <= hour <= 17:
+                    time_bucket = "afternoon"
+                elif 18 <= hour <= 22:
+                    time_bucket = "evening"
+                else:
+                    time_bucket = "night"
+                features["time_bucket"] = time_bucket
+
+                # Behavioral features with defaults
+                ctr7 = user_data.get("ctr7", 0.5)
+                features.update(
+                    {
+                        "lag_1": user_data.get("lag_1", 0),
+                        "lag_2": user_data.get("lag_2", 0),
+                        "ctr7": ctr7,
+                        "ctr14": user_data.get(
+                            "ctr14", ctr7 * 0.9
+                        ),  # Default to slightly lower than ctr7
+                        "ack_latency_sec": user_data.get("ack_latency_sec", 300),
+                        "ctr_user_channel": user_data.get(
+                            "ctr_user_channel", ctr7
+                        ),  # Default to overall CTR
+                        "exp_decay_response": user_data.get(
+                            "exp_decay_response", ctr7 * 0.8
+                        ),  # Default weighted by CTR
+                    }
+                )
+
+                # Latency bucket
+                latency = features["ack_latency_sec"]
+                if latency <= 300:
+                    latency_bucket = "fast"
+                elif latency <= 1800:
+                    latency_bucket = "medium"
+                else:
+                    latency_bucket = "slow"
+                features["latency_bucket"] = latency_bucket
+
+                # Timezone offset (default to 0 if not provided)
+                features["tz_offset_hours"] = user_data.get("tz_offset_hours", 0.0)
+
+                # Channel (default to push)
+                features["channel"] = user_data.get("channel", "push")
+
+                # Convert to DataFrame
+                X_inference = pd.DataFrame([features])
+
+                # Ensure all expected columns are present
+                all_expected_features = (
+                    feature_cols["numeric"] + feature_cols["categorical"]
+                )
+                missing_features = set(all_expected_features) - set(X_inference.columns)
+
+                if missing_features:
+                    print(
+                        f"Warning: Missing features {missing_features}, using defaults"
+                    )
+                    # Add missing features with default values
+                    for feat in missing_features:
+                        if feat in feature_cols["numeric"]:
+                            X_inference[feat] = 0.0
+                        else:
+                            X_inference[feat] = "unknown"
+
+                # Reorder columns to match expected order
+                X_inference = X_inference[all_expected_features]
+
                 # Get prediction
-                response_prob = model.predict_proba(X_inference)[0]
+                response_proba = model.predict_proba(X_inference)
+                if response_proba.ndim > 1 and response_proba.shape[1] > 1:
+                    response_prob = float(
+                        response_proba[0, 1]
+                    )  # Positive class probability
+                else:
+                    response_prob = float(response_proba[0])
 
                 # Channel recommendation using epsilon-greedy bandit
                 from .bandit import EpsilonGreedyBandit
 
-                bandit = EpsilonGreedyBandit(self.config.bandit)
-                recommended_channel = bandit.select_arm(features)
+                # Create bandit with proper config
+                bandit_config = self.config.bandit
+                bandit = EpsilonGreedyBandit(bandit_config)
+
+                # Create context dict for bandit (use only the context features it expects)
+                context_dict = {}
+                for feat in bandit_config.context_features:
+                    if feat in features:
+                        context_dict[feat] = float(features[feat])
+                    else:
+                        # Provide default values for missing context features
+                        if feat == "hours_since_prev":
+                            context_dict[feat] = 24.0
+                        elif feat == "ctr7":
+                            context_dict[feat] = 0.5
+                        elif "ctr" in feat:
+                            context_dict[feat] = 0.5
+                        else:
+                            context_dict[feat] = 0.0
+
+                # Select channel using bandit
+                recommended_channel = bandit.select_arm(context_dict)
 
                 recommendations = {
                     "recommended_channel": recommended_channel,
-                    "response_probability": float(response_prob),
+                    "response_probability": response_prob,
                     "confidence": "high"
                     if abs(response_prob - 0.5) > 0.2
                     else "medium",
+                    "error": None,
                 }
+
             except Exception as e:
                 print(f"Inference failed: {str(e)}")
+                import traceback
+
+                traceback.print_exc()
                 recommendations = {
                     "recommended_channel": "push",  # Default
                     "response_probability": 0.5,
